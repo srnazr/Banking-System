@@ -1,0 +1,11 @@
+-1,John,Smith
+#L001,international,5000$,1000$,2000$
+*25/10/2024,200USD
+*21/10/2024,-500USD
+-2,Alice,Anderson
+#B002,international,3000$,500$,1000$
+*08/08/2024,300EUR
+*06/07/2024,-400EUR
+-3,Bob,Smith
+#L003,domiciled,206$,500000$,100000$
+*09/09/2024,400000L.L
