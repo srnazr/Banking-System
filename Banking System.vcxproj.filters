@@ -21,10 +21,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Functions.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="userList.txt">
+    <None Include="usersFile">
       <Filter>Source Files</Filter>
-    </Text>
+    </None>
   </ItemGroup>
 </Project>

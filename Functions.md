@@ -3,7 +3,7 @@ Functions List
 
 2- File parsing function that reads the file and stores the data in the doubly linked list userList 
 
-3- Money transfer function that takes userList, monetary amount, 2 accounts (transfer from 1st acc to 2nd)
+3- Money transfer function that takes userList, monetary amount, 2 accounts (transfer from 1st acc to 2nd) X
 -> Check if the amount has enough balance
 -> Currency conversion if the accounts have different currencies
 -> Check if the amount exceeds the daily limit
@@ -11,19 +11,19 @@ Functions List
 
 4- Function that sorts the transactions in ascending order based on dates, changing links between nodes x
 
-5- User creation function that takes the user list and the user's first and last name and checks if user already exists
+5- User creation function that takes the user list and the user's first and last name and checks if user already exists x
 
-6- Transaction deletion function that takes the user list and the transaction date and deletes the transaction if it is less than the current date
+6- Transaction deletion function that takes the user list and the transaction date and deletes the transaction if it is less than the current date x
 
 7- Function that writes all users in a file while ensuring data isn't repeated x
 
 8- Main function that calls all the functions
 
-9- IBAN function 
+9- IBAN function x
 
-10- Time function x
+10- Time functions x
 
-4/10
+9/11
 
 //Additional Functions
 1- User account search that displays account info if it exists
