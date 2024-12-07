@@ -82,6 +82,7 @@ int generateUserID() {
 	return userID;
 }
 
+//FUNCTION TO CHECK IF USER ID EXISTS
 bool IDexists(userList *ul, int ID){
     user* currentUser = ul->head;
     while (currentUser != NULL) {
@@ -132,9 +133,12 @@ void writeToFile(userList ul) {
     return;
 }
 
+//===========
+//QUESTION 1
+//===========
 //FUNCTION TO READ FROM FILES
-void readDataFromFile(const string& filename, userList& uList) {
-    ifstream file(filename);
+void loadDataFromFile(userList* uList) {
+    ifstream file(userFile);
     if (!file) {
         cout << "Error: File could not be opened." << endl;
         return;
@@ -150,14 +154,14 @@ void readDataFromFile(const string& filename, userList& uList) {
         // If the line starts with "-", it's a user
         if (line[0] == '-') {
             if (currentUser != nullptr) {
-                if (uList.tail == nullptr) {
-                    uList.head = currentUser;
+                if (uList->tail == nullptr) {
+                    uList->head = currentUser;
                 }
                 else {
-                    uList.tail->next = currentUser;
-                    currentUser->previous = uList.tail;
+                    uList->tail->next = currentUser;
+                    currentUser->previous = uList->tail;
                 }
-                uList.tail = currentUser;
+                uList->tail = currentUser;
             }
 
             // Parse user data inline
@@ -248,14 +252,14 @@ void readDataFromFile(const string& filename, userList& uList) {
 
     // Ensure the last user is added to the user list
     if (currentUser != nullptr) {
-        if (uList.tail == nullptr) {
-            uList.head = currentUser;
+        if (uList->tail == nullptr) {
+            uList->head = currentUser;
         }
         else {
-            uList.tail->next = currentUser;
-            currentUser->previous = uList.tail;
+            uList->tail->next = currentUser;
+            currentUser->previous = uList->tail;
         }
-        uList.tail = currentUser;
+        uList->tail = currentUser;
     }
 
     file.close();
@@ -454,6 +458,7 @@ string getDateFromUser() {
     int day, month, year;
 
     while (true) {
+        cin.ignore();
         cout << "Enter a date (DD/MM/YY): ";
         string input;
         getline(cin, input);
@@ -486,13 +491,13 @@ bool hasEnoughBalance(account* acct, double amount) {
 
 // FUNCTION TO CHECK IF IT EXCEEDS THE DAILY DEPOSIT LIMIT
 bool exceedsDailyDepositLimit(account* acct, double amount) {
-    if (amount + acct->depositTrack > acct->limitDepositPerDay) return true;
+    if (amount < acct->balance && amount + acct->depositTrack > acct->limitDepositPerDay) return true;
     return false;
 }
 
 // FUNCTION TO CHECK IF IT EXCEEDS THE MONTHLY WITHDRAWAL LIMIT
 bool exceedsMonthlyWithdrawalLimit(account* acct, double amount) {
-    if (amount + acct->withdrawTrack > acct->limitWithdrawPerMonth) return true;
+    if (amount>acct->balance && amount + acct->withdrawTrack > acct->limitWithdrawPerMonth) return true;
     return false;
 }
 
@@ -522,25 +527,14 @@ void resetMonthlyWithdrawal(account& acct) {
     }
 }
 
-// FUNCTION TO INCREASE BALANCE
-void increaseBalance(account* acct, double amount) {
-    acct->balance += amount;
-    acct->depositTrack += amount;
-    acct->lastDailyDeposit = getCurrentDateTime();
-}
-
 // FUNCTION TO DECREASE BALANCE
 void decreaseBalance(account* acct, double amount) {
     acct->balance -= amount;
-    acct->withdrawTrack += amount;
-    acct->lastMonthlyWithdraw = getCurrentDateTime();
 }
 
-
-//===================================== ADDITIONAL FUNCTIONS ======================================
-//FUNCTION TO CLEAR CONSOLE
-void clearConsole() {
-    system("cls");
+// FUNCTION TO INCREASE BALANCE
+void increaseBalance(account* acct, double amount) {
+    acct->balance += amount;
 }
 
 
@@ -558,7 +552,7 @@ void displayTransactions(transaction* currentTransaction) {
         cout << "Transaction " << j++ << ": " << endl;
         cout << "Date: " << currentTransaction->date << endl;
         cout << "Amount: " << currentTransaction->amount << endl;
-        cout << "----------------------" << endl;
+        cout << "-------------------" << endl;
         currentTransaction = currentTransaction->next;
     }
 }
@@ -606,23 +600,27 @@ void addPosTransaction(account* acct, double amount) {
 //===========
 //FUNCTION FOR MONEY TRANSFER
 void transferMoney(userList* ul, double amount, account* acct1, account* acct2) {
-    user* currentUser = ul->head;
-    while (currentUser != NULL) {
-        account* currentAccount = currentUser->acct;
-        while (currentAccount != NULL) {
-            if (currentAccount->IBAN == acct1->IBAN) {
-                addNegTransaction(currentAccount, amount);
-                decreaseBalance(currentAccount, amount);
-            }
-            if(currentAccount->IBAN == acct2->IBAN){
-				addPosTransaction(currentAccount, amount);
-				increaseBalance(currentAccount, amount);
-			}
-            currentAccount = currentAccount->next;
-        }
-        currentUser = currentUser->next;
+    if (acct1 == NULL || acct2 == NULL) {
+        cout << "Error: Invalid account(s)." << endl;
+        return;
     }
-    return;
+
+    // Deduct amount from source account
+    addNegTransaction(acct1, amount);
+    decreaseBalance(acct1, amount);
+
+    // Add amount to target account
+    addPosTransaction(acct2, amount);
+    increaseBalance(acct2, amount);
+
+    // Update daily and monthly limits
+    acct1->withdrawTrack += amount;
+    acct1->lastMonthlyWithdraw = getCurrentDateTime();
+    acct2->depositTrack += amount;
+    acct2->lastDailyDeposit = getCurrentDateTime();
+
+    cout << "Transaction complete: " << amount << " transferred from "
+        << acct1->IBAN << " to " << acct2->IBAN << "." << endl;
 }
 
 //FUNCTION TO DELETE TRANSACTIONS
@@ -717,6 +715,7 @@ void displayAccountInfo(account* currentAccount) {
 
     int i = 1;
     while (currentAccount != NULL) {
+        cout<<endl;
         cout << "Account " << i++ << ": " << endl;
         cout << "IBAN: " << currentAccount->IBAN << endl;
         cout << "Type: " << currentAccount->accountName << endl;
@@ -731,7 +730,7 @@ void displayAccountInfo(account* currentAccount) {
             << currentAccount->currency << endl;
         cout << "Last Daily Deposit: " << currentAccount->lastDailyDeposit << endl;
         cout << "Last Monthly Withdrawal: " << currentAccount->lastMonthlyWithdraw << endl;
-        cout << "----------------------" << endl;
+        cout << "-------------------" << endl;
 
         displayTransactions(currentAccount->txn);
 
@@ -763,21 +762,21 @@ account generateAccount() {
         cin >> acct.currency;
     }
 
-    cout << "\nEnter the amount you would like to deposit: ";
+    cout << "Enter the amount you would like to deposit: ";
     cin >> acct.balance;
     while (!isValidAmount(acct.balance)) {
         cout << "Invalid amount. Please enter a valid amount: ";
         cin >> acct.balance;
     }
 
-    cout << "\nEnter the daily deposit limit: ";
+    cout << "Enter the daily deposit limit: ";
     cin >> acct.limitDepositPerDay;
     while (!isValidAmount(acct.limitDepositPerDay)) {
         cout << "Invalid amount. Please enter a valid amount: ";
         cin >> acct.limitDepositPerDay;
     }
 
-    cout << "\nEnter the monthly withdrawal limit: ";
+    cout << "Enter the monthly withdrawal limit: ";
     cin >> acct.limitWithdrawPerMonth;
     while (!isValidAmount(acct.limitWithdrawPerMonth)) {
         cout << "Invalid amount. Please enter a valid amount: ";
@@ -858,20 +857,19 @@ account generateAccount() {
     return acct;
 }
 
-//FUNCTION  TO LOCATE AN ACCOUNT
 account* locateAccount(userList* ul, string IBAN) {
-    user* temp = ul->head;
-    while (temp != nullptr) {
-        account* temp1 = temp->acct;
-        while (temp1 != nullptr) {
-            if (temp1->IBAN == IBAN) {
-                return temp1;
+    user* currentUser = ul->head;
+    while (currentUser != NULL) {
+        account* currentAccount = currentUser->acct;
+        while (currentAccount != NULL) {
+            if (currentAccount->IBAN == IBAN) {
+                return currentAccount;
             }
-            temp1 = temp1->next;
+            currentAccount = currentAccount->next;
         }
-        temp = temp->next;
+        currentUser = currentUser->next;
     }
-    return nullptr;
+    return NULL; 
 }
 
 //===========
@@ -928,10 +926,11 @@ void displayUserInfo(user* currentUser) {
         return;
     }
 
+    cout << endl;
     cout << "User ID: " << currentUser->userID << endl;
     cout << "First Name: " << currentUser->fname << endl;
     cout << "Last Name: " << currentUser->lname << endl;
-    cout << endl;
+    cout << endl << endl;
 
     cout << "Accounts: " << endl;
     displayAccountInfo(currentUser->acct);
@@ -946,9 +945,13 @@ void displayUserInfoID(userList* ul, int ID) {
             cout << "User ID: " << currentUser->userID << endl;
             cout << "First Name: " << currentUser->fname << endl;
             cout << "Last Name: " << currentUser->lname << endl;
+            cout << "----------------------" << endl;
 
             account* currentAccount = currentUser->acct;
+            int i = 1;
             while (currentAccount != nullptr) {
+                cout << "Account " << i++ << ": " << endl;
+                
                 cout << "Account IBAN: " << currentAccount->IBAN << endl;
                 cout << "Account Name: " << currentAccount->accountName << endl;
                 cout << "Balance: " << currentAccount->balance << currentAccount->currency << endl;
@@ -956,11 +959,15 @@ void displayUserInfoID(userList* ul, int ID) {
                 cout << "Withdraw Limit per Month: " << currentAccount->limitWithdrawPerMonth << currentAccount->currency << endl;
                 cout << "Last Daily Deposit: " << currentAccount->lastDailyDeposit << endl;
                 cout << "Last Monthly Withdrawal: " << currentAccount->lastMonthlyWithdraw << endl;
+                cout << "----------------------" << endl;
 
                 transaction* currentTransaction = currentAccount->txn;
+                int j = 1;
                 while (currentTransaction != nullptr) {
+                    cout << "Transaction " << j++ << ": " << endl;
                     cout << "Transaction Date: " << currentTransaction->date << endl;
                     cout << "Transaction Amount: " << currentTransaction->amount << endl;
+                    cout << "----------------------" << endl;
                     currentTransaction = currentTransaction->next;
                 }
                 currentAccount = currentAccount->next;
@@ -988,6 +995,7 @@ user getUserInfo() {
 //FUNCTION TO GET A NEW USER'S INFORMATION
 user getNewUserInfo() {
     user usr;
+    cin.ignore();
     cout << "Enter your first name: ";
     getline(cin, usr.fname);
     cout << "\nEnter your last name: ";
@@ -1029,7 +1037,7 @@ void addUser(userList* ul, user usr) {
 
 //FINAL FUNCTION FOR USER CREATION
 void createUser(userList* ul) {
-    cout << "===== User Creation ====" << endl << endl;
+    cout << "===== User Creation ====" << endl;
     user usr = getNewUserInfo();
     if (userExists(ul, usr)) {
         cout << "User already exists." << endl;
@@ -1086,14 +1094,14 @@ void makeTransaction(userList* ul) {
     string IBAN1, IBAN2;
     double amount;
     int ID;
-    cout << "===== Transaction ====" << endl << endl;
+    cout << "===== Transaction =====" << endl << endl;
     cout << "Enter your ID: ";
     cin >> ID;
     while (ID < 1 || !IDexists(ul, ID)) {
         cout << "Error: Enter a valid ID: ";
         cin >> ID;
     }
-
+    cout << endl;
     cout << "Your current accounts are: " << endl;
     displayUserInfoID(ul, ID);
 
@@ -1118,20 +1126,49 @@ void makeTransaction(userList* ul) {
     cout << "Enter the amount you want to transfer: ";
     cin >> amount;
 
-    if (!isValidAmount(amount) || !hasEnoughBalance(acct, amount) || exceedsMonthlyWithdrawalLimit(acct, amount) || exceedsDailyDepositLimit(acct1, amount)) {
-        cout << "Error: Transaction constraints violated." << endl;
-        return;
+    if (!isValidAmount(amount)) {
+        while (!isValidAmount(amount)) {
+            cout << "Error: Enter a valid amount: ";
+            cin >> amount;
+        }
+    }
+    else if (!hasEnoughBalance(acct, amount)) {
+        while (!hasEnoughBalance(acct, amount)) {
+            cout << "Error: Amount exceeds your account's balance. Enter a valid amount: ";
+            cin >> amount;
+        }
+    }
+    else if (exceedsMonthlyWithdrawalLimit(acct, amount)) {
+        while (exceedsMonthlyWithdrawalLimit(acct, amount)) {
+            cout << "Error: Amount exceeds the monthly withdrawal limit. Enter a valid amount: ";
+            cin >> amount;
+        }
+    }
+    else if (exceedsDailyDepositLimit(acct1, amount)) {
+        while (exceedsDailyDepositLimit(acct1, amount)) {
+            cout << "Error: Amount exceeds the daily deposit limit. Enter a valid amount: ";
+            cin >> amount;
+        }
     }
     transferMoney(ul, amount, acct, acct1);
     cout << "Transaction successful." << endl;
+}
+
+
+//FINAL FUNCTION TO DELE TRANSACTIONS
+void transactionDeletion(userList* ul) {
+	string date;
+    date = getDateFromUser();
+    deleteTransactions(ul, date);
+    return;
 }
 
 //===========
 //QUESTION 3 
 //===========
 //FINAL FUNCTION TO SORT TRANSACTIONS
-void sortTransactions(userList& ul) {
-    user* currentUser = ul.head;
+void sortTransactions(userList* ul) {
+    user* currentUser = ul->head;
     while (currentUser != NULL) {
         account* currentAccount = currentUser->acct;
         while (currentAccount != NULL) {
@@ -1143,6 +1180,90 @@ void sortTransactions(userList& ul) {
         currentUser = currentUser->next;
     }
     cout << "Transactions sorted successfully." << endl;
+}
+
+//======================================== MENU FUNCTIONS =========================================
+void mainMenu(userList* ul) {
+    cout << "============== MAIN MENU =============" << endl;
+    char ans = 0;
+    while (ans != '*') {
+        char ans;
+        if (ul->head == NULL) {
+            cout << "There are no users yet!" << endl;
+            cout << "========================" << endl;
+            cout << "1. Create User" << endl;
+            cout << "* To Save & Exit" << endl;
+            cout << "Enter your choice: ";
+            cin >> ans;
+            while (ans != '*' && ans < 1 && ans>6) {
+                cout << "Error: Enter a valid choice." << endl;
+                cin >> ans;
+            }
+
+            switch (ans) {
+            case '1':
+                createUser(ul);
+                break;
+            case '*':
+                writeToFile(*ul);
+                cout << "Changes saved, exiting program. Goodbye!" << endl;
+                return;
+            default:
+                cout << "Error: Invalid choice. Please try again." << endl;
+            }
+        }
+        cout << "========================" << endl;
+        cout << "1. Create User" << endl;
+        cout << "2. Create Account" << endl;
+        cout << "3. Perform Transaction" << endl;
+        cout << "4. Sort Transactions" << endl;
+        cout << "5. Delete Transactions" << endl;
+        cout << "* To Save & Exit" << endl;
+        cin >> ans;
+        while (ans != '*' && ans < 1 && ans>6) {
+            cout << "Error: Enter a valid choice." << endl;
+            cin >> ans;
+        }
+
+        switch (ans) {
+        case '1':
+            createUser(ul);
+            break;
+        case '2':
+            accountCreation(ul);
+			break;
+        case '3':
+			makeTransaction(ul);
+			break;
+        case '4':
+            sortTransactions(ul);
+            break;
+        case '5':
+            transactionDeletion(ul);
+            break;
+        case '*':
+			writeToFile(*ul);
+			cout << "Changes saved, exiting program. Goodbye!" << endl;
+			return;
+        default:
+			cout << "Error: Invalid choice. Please try again." << endl;
+        }
+    }
+}
+
+
+//======================================== MAIN FUNCTION =========================================
+int main(int argc, char** argv) {
+    cout << "================= Welcome To The Banking System! =================" << endl;
+
+    userList ul;
+    initialiseUserList(&ul);
+
+    cout << "Loading data..." << endl;
+    loadDataFromFile(&ul);
+
+    mainMenu(&ul);
+    return 0;
 }
 
 
