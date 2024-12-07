@@ -8,7 +8,6 @@
 #include <regex>
 #include <fstream>
 #include <sstream>
-#include <thread>
 
 
 //NAMESPACES
@@ -857,6 +856,7 @@ account generateAccount() {
     return acct;
 }
 
+//FUNCTION TO LOCATE A USER ACCOUNT
 account* locateAccount(userList* ul, string IBAN) {
     user* currentUser = ul->head;
     while (currentUser != NULL) {
@@ -917,6 +917,24 @@ void createNewAccout(userList* ul, user usr, account acct) {
     cout << "User not found. Please create the user first." << endl;
 }
 
+//FUNCTION TO CHECK IF USER HAS MORE THAN 2 ACCOUNTS
+bool hasMoreThanTwoAccounts(userList* ul, int ID) {
+    user* currentUser = ul->head;
+    while (currentUser != NULL) {
+        if (currentUser->userID == ID) {
+            int accountCount = 0;
+            account* tempAccount = currentUser->acct;
+            while (tempAccount != NULL) {
+                accountCount++;
+                tempAccount = tempAccount->next;
+            }
+            if (accountCount >= 2)
+                return true;
+        }
+        currentUser = currentUser->next;
+    }
+    return false;
+}
 
 //======================================== USER FUNCTIONS =========================================
 //FUNCTION TO DISPLAY USER INFORMATION
@@ -1102,6 +1120,12 @@ void makeTransaction(userList* ul) {
         cin >> ID;
     }
     cout << endl;
+
+    if (!hasMoreThanTwoAccounts(ul, ID)) {
+        cout << "Error: You must have more than 2 accounts to make a transaction." << endl;
+        return;
+    }
+
     cout << "Your current accounts are: " << endl;
     displayUserInfoID(ul, ID);
 
@@ -1122,6 +1146,7 @@ void makeTransaction(userList* ul) {
     }
 
     account* acct1 = locateAccount(ul, IBAN2);
+
 
     cout << "Enter the amount you want to transfer: ";
     cin >> amount;
@@ -1191,6 +1216,8 @@ void mainMenu(userList* ul) {
         if (ul->head == NULL) {
             cout << "There are no users yet!" << endl;
             cout << "========================" << endl;
+            cout << "What Would You Like to Do?" << endl;
+            cout << "========================" << endl;
             cout << "1. Create User" << endl;
             cout << "* To Save & Exit" << endl;
             cout << "Enter your choice: ";
@@ -1213,12 +1240,15 @@ void mainMenu(userList* ul) {
             }
         }
         cout << "========================" << endl;
+        cout << "What Would You Like to Do?" << endl;
+        cout << "========================" << endl;
         cout << "1. Create User" << endl;
         cout << "2. Create Account" << endl;
         cout << "3. Perform Transaction" << endl;
         cout << "4. Sort Transactions" << endl;
         cout << "5. Delete Transactions" << endl;
         cout << "* To Save & Exit" << endl;
+        cout << "Enter your choice: ";
         cin >> ans;
         while (ans != '*' && ans < 1 && ans>6) {
             cout << "Error: Enter a valid choice." << endl;
